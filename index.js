@@ -1,10 +1,22 @@
 // modules
-const express = require("express");
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+
+// // for accessing firebase configs database
+// import {
+//   getAllConfigs,
+//   getConfigsByApp,
+//   getConfigValueByAppAndKey,
+//   updateConfigValueByAppAndKey,
+//   deleteConfigByAppAndKey,
+//   createConfigValue,
+// } from "./helpers/configHelper.js";
+
 const app = express();
-const cors = require("cors");
 
 // dotenv config
-require("dotenv").config();
+dotenv.config();
 const PORT = process.env.PORT || 3000;
 
 // middleware
@@ -14,6 +26,8 @@ app.use(express.json());
 // startup
 
 // main
+
+(async () => {})();
 
 // listen to express server
 app.listen(PORT, () => {
