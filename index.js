@@ -30,5 +30,5 @@ app.use(express.json());
 
 // listen to express server
 app.listen(PORT, () => {
-  console.log(`Server connected to port ${PORT}`);
+  console.log(`Server connected to port ${PORT}...`);
 });
