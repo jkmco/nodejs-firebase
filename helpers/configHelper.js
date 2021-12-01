@@ -1,3 +1,5 @@
+// Helper functions for accessing configs in firestore
+
 import { db } from "../lib/firebase.js";
 import {
   doc,
@@ -19,9 +21,18 @@ export async function getAllConfigs() {
   let result = [];
 
   colSnap.forEach((doc) => {
-    result.push({ app: doc.id, ...doc.data() });
+    const data = doc.data();
+    for (let i in data) {
+      result.push({ app: doc.id, key: i, value: data[i] });
+    }
   });
   return result;
+  // return :
+  // [
+  //   { app: 'fundingrates', key: 'test', value: 100 },
+  //   { app: 'fundingrates', key: 'rank', value: [ '1', 'abc', 'ddd' ] },
+  //   { app: 'volumeAlert', key: 'time', value: '3m' }
+  // ]
 }
 
 /**
@@ -56,10 +67,9 @@ export async function getConfigByAppAndKey(app, key) {
  */
 export async function upsertConfigValue(app, key, value) {
   const docSnap = await getConfigByApp(app);
-  const obj = docSnap.data();
+  const obj = docSnap.data() ? docSnap.data() : {};
 
-  // cannot use "app" as key, prevent conflict, replace it as 'app2'
-  key == "app" ? (obj["app2"] = value) : (obj[key] = value);
+  obj[key] = value;
 
   try {
     await setDoc(docSnap.ref, obj);
