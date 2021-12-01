@@ -1,148 +1,86 @@
-// Helper functions for accessing configs in firestore
-// configs(col)) > configApp(doc) > configKey+configValue(doc)
-
-import { db, firebaseTimestampToJSON } from "../lib/firebase.js";
+import { db } from "../lib/firebase.js";
 import {
+  doc,
   collection,
   getDocs,
-  query,
-  where,
-  orderBy,
+  getDoc,
+  setDoc,
   updateDoc,
-  addDoc,
-  deleteDoc,
-  serverTimestamp,
+  deleteField,
 } from "firebase/firestore";
 
 /**
- * Get all configs from firestore
+ * Get all config data
  */
 export async function getAllConfigs() {
   const colRef = collection(db, "configs");
-  const q = query(colRef, orderBy("app"), orderBy("key"));
-  const qSnap = await getDocs(q);
+  const colSnap = await getDocs(colRef);
 
   let result = [];
 
-  qSnap.forEach((doc) => {
-    result.push(firebaseTimestampToJSON(doc));
+  colSnap.forEach((doc) => {
+    result.push({ app: doc.id, ...doc.data() });
   });
-
   return result;
+}
+
+/**
+ * Get config documents with specific config app name
+ * @param {string} app
+ */
+export async function getConfigByApp(app) {
+  const docRef = doc(db, "configs", app);
+  const docSnap = await getDoc(docRef);
+
+  return docSnap;
 }
 
 /**
  * Get config data with specific config app name
  * @param {string} app
+ * @param {string} key
  */
-export async function getConfigsByApp(appName) {
-  const colRef = collection(db, "configs");
-  const q = query(colRef, where("app", "==", appName));
-  const qSnap = await getDocs(q);
+export async function getConfigByAppAndKey(app, key) {
+  const docRef = doc(db, "configs", app);
+  const docSnap = await getDoc(docRef);
+  const result = docSnap.data();
 
-  let result = [];
-
-  qSnap.forEach((doc) => {
-    result.push(firebaseTimestampToJSON(doc));
-  });
-
-  return result;
+  return result[key];
 }
 
 /**
- * Get config data with specific config app name and config key
- * @param {string} appName {string} key
+ * Upsert config data
+ * @param {string} app
+ * @param {string} key
+ * @param {string} value
  */
-export async function getConfigValueByAppAndKey(appName, key) {
-  const colRef = collection(db, "configs");
-  const q = query(colRef, where("app", "==", appName), where("key", "==", key));
-  const qSnap = await getDocs(q);
+export async function upsertConfigValue(app, key, value) {
+  const docSnap = await getConfigByApp(app);
+  const obj = docSnap.data();
 
-  let result = null;
-
-  qSnap.forEach((doc) => {
-    result = doc.data();
-  });
-
-  return result;
-}
-
-/**
- * update config data with specific config app name and config key
- * @param {string} appName {string} key {any} value
- */
-export async function updateConfigValueByAppAndKey(appName, key, value) {
-  const colRef = collection(db, "configs");
-  const q = query(colRef, where("app", "==", appName), where("key", "==", key));
-  const qSnap = await getDocs(q);
-
-  let docRef = null;
-
-  qSnap.forEach((doc) => {
-    docRef = doc.ref;
-  });
+  // cannot use "app" as key, prevent conflict, replace it as 'app2'
+  key == "app" ? (obj["app2"] = value) : (obj[key] = value);
 
   try {
-    await updateDoc(docRef, {
-      value: value,
-      updatedAt: serverTimestamp(),
-    });
+    await setDoc(docSnap.ref, obj);
   } catch (err) {
-    console.log(
-      `[error | configHelper | updateConfigValueByAppAndKey] : ${err}`
-    );
+    console.log(`[error | configHelper | upsertConfigValue] : ${err}`);
   }
 }
 
 /**
- * delete config data with specific config app name and config key
- * @param {string} appName {string} key {any} value
+ * delete config data with specific config app name
+ * @param {string} app
+ * @param {string} key
  */
-export async function deleteConfigByAppAndKey(appName, key) {
-  const colRef = collection(db, "configs");
-  const q = query(colRef, where("app", "==", appName), where("key", "==", key));
-  const qSnap = await getDocs(q);
-
-  let docRef = null;
-
-  qSnap.forEach((doc) => {
-    docRef = doc.ref;
-    console.log(docRef);
-  });
+export async function deleteConfigByAppAndKey(app, key) {
+  const docSnap = await getConfigByApp(app);
+  const obj = docSnap.data();
+  obj[key] = deleteField();
 
   try {
-    await deleteDoc(docRef);
+    await updateDoc(docSnap.ref, obj);
   } catch (err) {
     console.log(`[error | configHelper | deleteConfigByAppAndKey] : ${err}`);
   }
 }
-
-/**
- * create config with app+key+value
- * @param {string} appName {string} key {any} value
- */
-export async function createConfigValue(appName, key, value) {
-  const colRef = collection(db, "configs");
-  const data = {
-    app: appName,
-    key: key,
-    value: value,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  };
-
-  try {
-    await addDoc(colRef, data);
-  } catch (err) {
-    console.log(`[error | configHelper | createConfig] : ${err}`);
-  }
-}
-
-// module.exports = {
-//   getAllConfigs,
-//   getConfigsByApp,
-//   getConfigValueByAppAndKey,
-//   updateConfigValueByAppAndKey,
-//   deleteConfigByAppAndKey,
-//   createConfigValue,
-// };

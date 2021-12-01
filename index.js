@@ -7,10 +7,9 @@ import dotenv from "dotenv";
 // import {
 //   getAllConfigs,
 //   getConfigsByApp,
-//   getConfigValueByAppAndKey,
-//   updateConfigValueByAppAndKey,
+//   getConfigByAppAndKey,
+//   upsertConfigValue,
 //   deleteConfigByAppAndKey,
-//   createConfigValue,
 // } from "./helpers/configHelper.js";
 
 const app = express();
